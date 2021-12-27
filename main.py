@@ -5,6 +5,8 @@ import pygame
 pygame.init()
 pygame.display.set_caption('X|')
 size = width, height = 800, 800
+elem_width = 50
+elem_height = 50  # указать размеры для элементов
 screen = pygame.display.set_mode(size)
 clock = pygame.time.Clock()
 fps = 60
@@ -31,6 +33,33 @@ def print_txt(message, x, y, font_clr=(255, 255, 255), font_t=None, font_size=30
     font_type = pygame.font.SysFont(font_t, font_size)
     txt = font_type.render(message, True, font_clr)
     screen.blit(txt, (x, y))
+
+
+class Closet:
+    def __init__(self, pos_x, pos_y):
+        self.elem = pygame.sprite.Group()
+        # добавление элементов по умолчанию
+        self.color = (130, 130, 130)
+        self.color_fon_elem = (100, 100, 100)
+        self.x = pos_x
+        self.y = pos_y
+        self.width = (len(self.elem) // 2 + len(self.elem) % 2) * (elem_width + 15) + 5
+        self.height = (elem_height + 15) * 2 + 5
+
+    def draw(self):
+        pygame.draw.rect(screen, self.color, (self.x, self.y, self.width, self.height))
+        for i, el in enumerate(self.elem):
+            pygame.draw.rect(screen, self.color_fon_elem,
+                             (10 + (elem_width + 10) * (i // 2) + self.x, 10 + (elem_width + 10) * (i % 2) + self.y,
+                              elem_width + 5, elem_height + 5))
+            el.draw(15 + (elem_width + 10) * (i // 2) + self.x, 15 + (elem_width + 10) * (i % 2) + self.y)
+
+    def scroll(self):
+        pass
+
+    def new_elem(self, element):
+        self.elem.add(element)
+        self.width = (len(self.elem) // 2 + len(self.elem) % 2) * (elem_width + 15) + 5
 
 
 class Button:
