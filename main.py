@@ -45,17 +45,28 @@ class Closet:
         self.y = pos_y
         self.width = (len(self.elem) // 2 + len(self.elem) % 2) * (elem_width + 15) + 5
         self.height = (elem_height + 15) * 2 + 5
+        self.rect = pygame.Rect(self.x, self.y, self.width + 100, self.height)
+        self.left_button = Button(50, self.height)
+        self.right_button = Button(50, self.height)
 
     def draw(self):
-        pygame.draw.rect(screen, self.color, (self.x, self.y, self.width, self.height))
+        pygame.draw.rect(screen, self.color, (self.x, self.y, self.width + 100, self.height))
         for i, el in enumerate(self.elem):
             pygame.draw.rect(screen, self.color_fon_elem,
-                             (10 + (elem_width + 10) * (i // 2) + self.x, 10 + (elem_width + 10) * (i % 2) + self.y,
+                             (60 + (elem_width + 10) * (i // 2) + self.x, 10 + (elem_width + 10) * (i % 2) + self.y,
                               elem_width + 5, elem_height + 5))
-            el.draw(15 + (elem_width + 10) * (i // 2) + self.x, 15 + (elem_width + 10) * (i % 2) + self.y)
+        self.elem.draw(screen)
+        self.left_button.draw(0, self.y, '***')
+        if self.width + 50 < 750:
+            self.right_button.draw(self.width + 50, self.y, '***')
+        else:
+            self.right_button.draw(750, self.y - 10, '***')
 
     def scroll(self):
-        pass
+        if self.right_button.click() and self.x > 800 - self.width:
+            self.x -= 200 / fps
+        if self.left_button.click() and self.x < 0:
+            self.x += 200 / fps
 
     def new_elem(self, element):
         self.elem.add(element)
@@ -63,7 +74,7 @@ class Closet:
 
 
 class Button:
-    def __init__(self, width, height):
+    def __init__(self, width, height, act_clr=(30, 30, 30), inact_clr=(0, 0, 0)):
         self.width = width
         self.height = height
         self.act_clr = (30, 30, 30)
