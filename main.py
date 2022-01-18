@@ -5,8 +5,7 @@ import pygame
 pygame.init()
 pygame.display.set_caption('X|')
 size = width, height = 800, 800
-elem_width = 50
-elem_height = 50  # указать размеры для элементов
+elem_size = 65  # указать размеры для элементов
 screen = pygame.display.set_mode(size)
 clock = pygame.time.Clock()
 fps = 60
@@ -35,27 +34,45 @@ def print_txt(message, x, y, font_clr=(255, 255, 255), font_t=None, font_size=30
     screen.blit(txt, (x, y))
 
 
+class Elem(pygame.sprite.Sprite):
+    def __init__(self, group, number, x, y):
+        super().__init__(group)
+        self.image = load_image(f"{number}.png")
+        self.rect = self.image.get_rect()
+        self.rect.x = x
+        self.rect.y = y
+
+    def update(self, x, y):
+        self.rect.x = x
+        self.rect.y = y
+
+
 class Closet:
     def __init__(self, pos_x, pos_y):
-        self.elem = pygame.sprite.Group()
-        # добавление элементов по умолчанию
-        self.color = (130, 130, 130)
-        self.color_fon_elem = (100, 100, 100)
         self.x = pos_x
         self.y = pos_y
-        self.width = (len(self.elem) // 2 + len(self.elem) % 2) * (elem_width + 15) + 5
-        self.height = (elem_height + 15) * 2 + 5
+        self.elem = pygame.sprite.Group()
+        for i in range(1, 17):
+            Elem(self.elem, str(i), 60 + (elem_size + 10) * (len(self.elem) // 2) + self.x,
+                10 + (elem_size + 15) * (len(self.elem) % 2) + self.y)
+        for i in range(80, 96):
+            Elem(self.elem, str(i), 60 + (elem_size + 10) * (len(self.elem) // 2) + self.x,
+                10 + (elem_size + 15) * (len(self.elem) % 2) + self.y)
+        self.color = (130, 130, 130)
+        self.color_fon_elem = (100, 100, 100)
+        self.width = (len(self.elem) // 2 + len(self.elem) % 2) * (elem_size + 15) + 5
+        self.height = (elem_size + 15) * 2 + 5
         self.rect = pygame.Rect(self.x, self.y, self.width + 100, self.height)
         self.left_button = Button(50, self.height)
         self.right_button = Button(50, self.height)
 
-    def draw(self):
-        pygame.draw.rect(screen, self.color, (self.x, self.y, self.width + 100, self.height))
+    def draw(self, canvas):
+        pygame.draw.rect(canvas, self.color, (self.x, self.y, self.width + 100, self.height))
         for i, el in enumerate(self.elem):
-            pygame.draw.rect(screen, self.color_fon_elem,
-                             (60 + (elem_width + 10) * (i // 2) + self.x, 10 + (elem_width + 10) * (i % 2) + self.y,
-                              elem_width + 5, elem_height + 5))
-        self.elem.draw(screen)
+            pygame.draw.rect(canvas, self.color_fon_elem,
+                             (60 + (elem_size + 10) * (i // 2) + self.x, 10 + (elem_size + 10) * (i % 2) + self.y,
+                              elem_size + 5, elem_size + 5))
+        self.elem.draw(canvas)
         self.left_button.draw(0, self.y, '***')
         if self.width + 50 < 750:
             self.right_button.draw(self.width + 50, self.y, '***')
@@ -65,12 +82,18 @@ class Closet:
     def scroll(self):
         if self.right_button.click() and self.x > 800 - self.width:
             self.x -= 200 / fps
+            for i, el in enumerate(self.elem):
+                el.update(60 + (elem_size + 10) * (i // 2) + self.x,
+                    10 + (elem_size + 15) * (i % 2) + self.y)
         if self.left_button.click() and self.x < 0:
             self.x += 200 / fps
+            for i, el in enumerate(self.elem):
+                el.update(60 + (elem_size + 10) * (i // 2) + self.x,
+                          10 + (elem_size + 15) * (i % 2) + self.y)
 
     def new_elem(self, element):
         self.elem.add(element)
-        self.width = (len(self.elem) // 2 + len(self.elem) % 2) * (elem_width + 15) + 5
+        self.width = (len(self.elem) // 2 + len(self.elem) % 2) * (elem_size + 15) + 5
 
 
 class Button:
@@ -161,6 +184,7 @@ while game_run:
     end_button = Button(100, 50)
     back_menu = Button(100, 50)
     running = True
+    closet = Closet(0, 600)
     while running:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -169,6 +193,8 @@ while game_run:
         screen.fill((74, 74, 74))
         back_menu.draw(10, 10, 'Back', 49)
         end_button.draw(690, 10, 'End', 50)
+        closet.draw(screen)
+        closet.scroll()
         if back_menu.click():
             menu()
         if end_button.click():
