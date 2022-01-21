@@ -12,7 +12,7 @@ fps = 60
 show_menu = True
 visible_sprites = pygame.sprite.Group()  ## все видимые спрайты
 invisible_sprites = pygame.sprite.Group()  ## в этой группе всех элементов по 1, вероятно можно использоать в шкафу
-elements = {}    ## словарь элементов по номерам
+elements, reactions = {}, {}  ## словарь элементов по номерам
 tile_width = tile_height = 50
 
 
@@ -130,7 +130,15 @@ class Element(pygame.sprite.Sprite):  ##  класс элемента
         self.rect.y = pos_y
         self.md = False
 
-    def mdn(self):
+    def mdn(self, xy):
+        if self.md:
+            a = pygame.sprite.spritecollideany(self, visible_sprites)
+            x, y = xy
+            if a:
+                for i in [a]:
+                    if (i.name, self.name) in reactions and i != self:
+                        inv_to_v(elements[reactions[(i.name, self.name)]], x, y)
+                        visible_sprites.remove(i, self)
         self.md = False
 
     def update(self, xy):
@@ -145,8 +153,11 @@ with open('data/elements.csv', encoding="utf8") as csvfile:  ## Создаю п�
     reader = csv.reader(csvfile, delimiter=';', quotechar='"')
     for i in reader:
         elements[str(i[1][1:])] = Element(100, 100, i[1][1:])
+        a = i[2].split()
+        reactions[(a[0], a[1])] = i[1][1:]
+        reactions[(a[1], a[0])] = i[1][1:]
 
-##  inv_to_v(elements[str(1)], 50, 50)     ## примеры использования функции
+##  inv_to_v(elements[str(1)], 50, 50)  ## примеры использования функции
 ##  inv_to_v(elements[str(1)], 100, 100)
 game_run = True
 
@@ -169,7 +180,7 @@ while game_run:
                         i.rect.topleft = (x - 25, y - 25)
             if event.type == pygame.MOUSEBUTTONUP:
                 for i in visible_sprites:
-                    i.mdn()
+                    i.mdn(event.pos)
         screen.fill((74, 74, 74))
         back_menu.draw(10, 10, 'Back', 49)
         end_button.draw(690, 10, 'End', 50)
