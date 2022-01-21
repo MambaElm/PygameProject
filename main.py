@@ -1,6 +1,7 @@
 import os
 import sys
 import pygame
+import csv
 
 pygame.init()
 pygame.display.set_caption('X|')
@@ -9,6 +10,10 @@ screen = pygame.display.set_mode(size)
 clock = pygame.time.Clock()
 fps = 60
 show_menu = True
+visible_sprites = pygame.sprite.Group()  ## все видимые спрайты
+invisible_sprites = pygame.sprite.Group()  ## в этой группе всех элементов по 1, вероятно можно использоать в шкафу
+elements = {}    ## словарь элементов по номерам
+tile_width = tile_height = 50
 
 
 def load_image(name, colorkey=None):
@@ -115,7 +120,36 @@ def end_game():
         pygame.display.flip()
 
 
+class Element(pygame.sprite.Sprite):  ##  класс элемента
+    def __init__(self, pos_x, pos_y, name):
+        super().__init__(invisible_sprites)
+        self.name = str(name)
+        self.image = load_image(self.name + '.png')
+        self.rect = self.image.get_rect()
+        self.rect.x = pos_x
+        self.rect.y = pos_y
+        self.md = False
+
+    def mdn(self):
+        self.md = False
+
+    def update(self, xy):
+        self.md = self.rect.collidepoint(xy)
+
+
+def inv_to_v(elem, pos_x, pos_y):  ## создание видимого спрайта, по номеру и желаемому положению
+    visible_sprites.add(Element(pos_x, pos_y, elem.name))
+
+
+with open('data/elements.csv', encoding="utf8") as csvfile:  ## Создаю по одному спрайту каждого элемента
+    reader = csv.reader(csvfile, delimiter=';', quotechar='"')
+    for i in reader:
+        elements[str(i[1][1:])] = Element(100, 100, i[1][1:])
+
+##  inv_to_v(elements[str(1)], 50, 50)     ## примеры использования функции
+##  inv_to_v(elements[str(1)], 100, 100)
 game_run = True
+
 while game_run:
     menu()
     end_button = Button(100, 50)
@@ -126,6 +160,16 @@ while game_run:
             if event.type == pygame.QUIT:
                 pygame.quit()
                 quit()
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                visible_sprites.update(event.pos)
+            if event.type == pygame.MOUSEMOTION:  ## перемещение спрайта
+                for i in visible_sprites:
+                    if i.md:
+                        x, y = event.pos
+                        i.rect.topleft = (x - 25, y - 25)
+            if event.type == pygame.MOUSEBUTTONUP:
+                for i in visible_sprites:
+                    i.mdn()
         screen.fill((74, 74, 74))
         back_menu.draw(10, 10, 'Back', 49)
         end_button.draw(690, 10, 'End', 50)
@@ -133,6 +177,7 @@ while game_run:
             menu()
         if end_button.click():
             running = False
+        visible_sprites.draw(screen)
         clock.tick(fps)
         pygame.display.flip()
     end_game()
