@@ -1,15 +1,19 @@
 import os
 import sys
 import pygame
+import csv
 
 pygame.init()
 pygame.display.set_caption('X|')
 size = width, height = 800, 800
-elem_size = 65  # указать размеры для элементов
 screen = pygame.display.set_mode(size)
 clock = pygame.time.Clock()
 fps = 60
 show_menu = True
+visible_sprites = pygame.sprite.Group()  ## все видимые спрайты
+invisible_sprites = pygame.sprite.Group()  ## в этой группе всех элементов по 1, вероятно можно использоать в шкафу
+elements, reactions = {}, {}  ## словарь элементов по номерам
+tile_width = tile_height = 50
 
 
 def load_image(name, colorkey=None):
@@ -34,70 +38,8 @@ def print_txt(message, x, y, font_clr=(255, 255, 255), font_t=None, font_size=30
     screen.blit(txt, (x, y))
 
 
-class Elem(pygame.sprite.Sprite):
-    def __init__(self, group, number, x, y):
-        super().__init__(group)
-        self.image = load_image(f"{number}.png")
-        self.rect = self.image.get_rect()
-        self.rect.x = x
-        self.rect.y = y
-
-    def update(self, x, y):
-        self.rect.x = x
-        self.rect.y = y
-
-
-class Closet:
-    def __init__(self, pos_x, pos_y):
-        self.x = pos_x
-        self.y = pos_y
-        self.elem = pygame.sprite.Group()
-        for i in range(1, 17):
-            Elem(self.elem, str(i), 60 + (elem_size + 10) * (len(self.elem) // 2) + self.x,
-                10 + (elem_size + 15) * (len(self.elem) % 2) + self.y)
-        for i in range(80, 96):
-            Elem(self.elem, str(i), 60 + (elem_size + 10) * (len(self.elem) // 2) + self.x,
-                10 + (elem_size + 15) * (len(self.elem) % 2) + self.y)
-        self.color = (130, 130, 130)
-        self.color_fon_elem = (100, 100, 100)
-        self.width = (len(self.elem) // 2 + len(self.elem) % 2) * (elem_size + 15) + 5
-        self.height = (elem_size + 15) * 2 + 5
-        self.rect = pygame.Rect(self.x, self.y, self.width + 100, self.height)
-        self.left_button = Button(50, self.height)
-        self.right_button = Button(50, self.height)
-
-    def draw(self, canvas):
-        pygame.draw.rect(canvas, self.color, (self.x, self.y, self.width + 100, self.height))
-        for i, el in enumerate(self.elem):
-            pygame.draw.rect(canvas, self.color_fon_elem,
-                             (60 + (elem_size + 10) * (i // 2) + self.x, 10 + (elem_size + 10) * (i % 2) + self.y,
-                              elem_size + 5, elem_size + 5))
-        self.elem.draw(canvas)
-        self.left_button.draw(0, self.y, '***')
-        if self.width + 50 < 750:
-            self.right_button.draw(self.width + 50, self.y, '***')
-        else:
-            self.right_button.draw(750, self.y - 10, '***')
-
-    def scroll(self):
-        if self.right_button.click() and self.x > 800 - self.width:
-            self.x -= 200 / fps
-            for i, el in enumerate(self.elem):
-                el.update(60 + (elem_size + 10) * (i // 2) + self.x,
-                    10 + (elem_size + 15) * (i % 2) + self.y)
-        if self.left_button.click() and self.x < 0:
-            self.x += 200 / fps
-            for i, el in enumerate(self.elem):
-                el.update(60 + (elem_size + 10) * (i // 2) + self.x,
-                          10 + (elem_size + 15) * (i % 2) + self.y)
-
-    def new_elem(self, element):
-        self.elem.add(element)
-        self.width = (len(self.elem) // 2 + len(self.elem) % 2) * (elem_size + 15) + 5
-
-
 class Button:
-    def __init__(self, width, height, act_clr=(30, 30, 30), inact_clr=(0, 0, 0)):
+    def __init__(self, width, height):
         self.width = width
         self.height = height
         self.act_clr = (30, 30, 30)
@@ -178,27 +120,75 @@ def end_game():
         pygame.display.flip()
 
 
+class Element(pygame.sprite.Sprite):  ##  класс элемента
+    def __init__(self, pos_x, pos_y, name):
+        super().__init__(invisible_sprites)
+        self.name = str(name)
+        self.image = load_image(self.name + '.png')
+        self.rect = self.image.get_rect()
+        self.rect.x = pos_x
+        self.rect.y = pos_y
+        self.md = False
+
+    def mdn(self, xy):
+        if self.md:
+            a = pygame.sprite.spritecollideany(self, visible_sprites)
+            x, y = xy
+            if a:
+                for i in [a]:
+                    if (i.name, self.name) in reactions and i != self:
+                        inv_to_v(elements[reactions[(i.name, self.name)]], x, y)
+                        visible_sprites.remove(i, self)
+        self.md = False
+
+    def update(self, xy):
+        self.md = self.rect.collidepoint(xy)
+
+
+def inv_to_v(elem, pos_x, pos_y):  ## создание видимого спрайта, по номеру и желаемому положению
+    visible_sprites.add(Element(pos_x, pos_y, elem.name))
+
+
+with open('data/elements.csv', encoding="utf8") as csvfile:  ## Создаю по одному спрайту каждого элемента
+    reader = csv.reader(csvfile, delimiter=';', quotechar='"')
+    for i in reader:
+        elements[str(i[1][1:])] = Element(100, 100, i[1][1:])
+        a = i[2].split()
+        reactions[(a[0], a[1])] = i[1][1:]
+        reactions[(a[1], a[0])] = i[1][1:]
+
+##  inv_to_v(elements[str(1)], 50, 50)  ## примеры использования функции
+##  inv_to_v(elements[str(1)], 100, 100)
 game_run = True
+
 while game_run:
     menu()
     end_button = Button(100, 50)
     back_menu = Button(100, 50)
     running = True
-    closet = Closet(0, 600)
     while running:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
                 quit()
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                visible_sprites.update(event.pos)
+            if event.type == pygame.MOUSEMOTION:  ## перемещение спрайта
+                for i in visible_sprites:
+                    if i.md:
+                        x, y = event.pos
+                        i.rect.topleft = (x - 25, y - 25)
+            if event.type == pygame.MOUSEBUTTONUP:
+                for i in visible_sprites:
+                    i.mdn(event.pos)
         screen.fill((74, 74, 74))
         back_menu.draw(10, 10, 'Back', 49)
         end_button.draw(690, 10, 'End', 50)
-        closet.draw(screen)
-        closet.scroll()
         if back_menu.click():
             menu()
         if end_button.click():
             running = False
+        visible_sprites.draw(screen)
         clock.tick(fps)
         pygame.display.flip()
     end_game()
