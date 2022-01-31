@@ -6,6 +6,7 @@ import csv
 pygame.init()
 pygame.display.set_caption('X|')
 size = width, height = 800, 800
+elem_size = 65  # указать размеры для элементов
 screen = pygame.display.set_mode(size)
 clock = pygame.time.Clock()
 fps = 60
@@ -36,6 +37,51 @@ def print_txt(message, x, y, font_clr=(255, 255, 255), font_t=None, font_size=30
     font_type = pygame.font.SysFont(font_t, font_size)
     txt = font_type.render(message, True, font_clr)
     screen.blit(txt, (x, y))
+
+class Closet:
+    def __init__(self, pos_x, pos_y):
+        self.x = pos_x
+        self.y = pos_y
+        self.elem = pygame.sprite.Group()
+        for i in range(1, 5):
+            Element(self.elem, 60 + (elem_size + 10) * (len(self.elem) // 2) + self.x,
+                10 + (elem_size + 15) * (len(self.elem) % 2) + self.y, str(i))
+        self.color = (130, 130, 130)
+        self.color_fon_elem = (100, 100, 100)
+        self.width = (len(self.elem) // 2 + len(self.elem) % 2) * (elem_size + 15) + 5
+        self.height = (elem_size + 15) * 2 + 5
+        self.rect = pygame.Rect(self.x, self.y, self.width + 100, self.height)
+        self.left_button = Button(50, self.height)
+        self.right_button = Button(50, self.height)
+
+    def draw(self, canvas):
+        pygame.draw.rect(canvas, self.color, (self.x, self.y, self.width + 100, self.height))
+        for i, el in enumerate(self.elem):
+            pygame.draw.rect(canvas, self.color_fon_elem,
+                             (60 + (elem_size + 10) * (i // 2) + self.x, 10 + (elem_size + 10) * (i % 2) + self.y,
+                              elem_size + 5, elem_size + 5))
+        self.elem.draw(canvas)
+        self.left_button.draw(0, self.y, '***')
+        if self.width + 50 < 750:
+            self.right_button.draw(self.width + 50, self.y, '***')
+        else:
+            self.right_button.draw(750, self.y - 10, '***')
+
+    def scroll(self):
+        if self.right_button.click() and self.x > 800 - self.width:
+            self.x -= 200 / fps
+            for i, el in enumerate(self.elem):
+                el.rect.x = 60 + (elem_size + 10) * (i // 2) + self.x
+                el.rect.y = 10 + (elem_size + 15) * (i % 2) + self.y
+        if self.left_button.click() and self.x < 0:
+            self.x += 200 / fps
+            for i, el in enumerate(self.elem):
+                el.rect.x = 60 + (elem_size + 10) * (i // 2) + self.x
+                el.rect.y = 10 + (elem_size + 15) * (i % 2) + self.y
+
+    def new_elem(self, element):
+        self.elem.add(element)
+        self.width = (len(self.elem) // 2 + len(self.elem) % 2) * (elem_size + 15) + 5
 
 
 class Button:
@@ -111,6 +157,9 @@ def end_game():
         screen.fill((105, 105, 105))
         go_to_menu.draw(294, 375, 'Go to Menu', 50)
         quit_button.draw(355, 445, 'Exit', 50)
+        print_txt(f'Ты (а вдруг кто посмотрит). Вот твой результат:{len(closet.elem)})  <3 Спасибо *_*', 20, 100)
+        print_txt('Потом поправим Т_Т Щас 2:42  ну ок Уже похоже на что-то', 30, 120)
+        print_txt('Можно  я проект на школьный возьму ', 30, 140)
         if go_to_menu.click():
             return
         if quit_button.click():
@@ -121,8 +170,8 @@ def end_game():
 
 
 class Element(pygame.sprite.Sprite):  ##  класс элемента
-    def __init__(self, pos_x, pos_y, name):
-        super().__init__(invisible_sprites)
+    def __init__(self, group, pos_x, pos_y, name):
+        super().__init__(group)
         self.name = str(name)
         self.image = load_image(self.name + '.png')
         self.rect = self.image.get_rect()
@@ -146,13 +195,13 @@ class Element(pygame.sprite.Sprite):  ##  класс элемента
 
 
 def inv_to_v(elem, pos_x, pos_y):  ## создание видимого спрайта, по номеру и желаемому положению
-    visible_sprites.add(Element(pos_x, pos_y, elem.name))
+    visible_sprites.add(Element(invisible_sprites, pos_x, pos_y, elem.name))
 
 
 with open('data/elements.csv', encoding="utf8") as csvfile:  ## Создаю по одному спрайту каждого элемента
     reader = csv.reader(csvfile, delimiter=';', quotechar='"')
     for i in reader:
-        elements[str(i[1][1:])] = Element(100, 100, i[1][1:])
+        elements[str(i[1][1:])] = Element(invisible_sprites, 100, 100, i[1][1:])
         a = i[2].split()
         reactions[(a[0], a[1])] = i[1][1:]
         reactions[(a[1], a[0])] = i[1][1:]
@@ -166,6 +215,7 @@ while game_run:
     end_button = Button(100, 50)
     back_menu = Button(100, 50)
     running = True
+    closet = Closet(0, 600)
     while running:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -184,6 +234,8 @@ while game_run:
         screen.fill((74, 74, 74))
         back_menu.draw(10, 10, 'Back', 49)
         end_button.draw(690, 10, 'End', 50)
+        closet.draw(screen)
+        closet.scroll()
         if back_menu.click():
             menu()
         if end_button.click():
