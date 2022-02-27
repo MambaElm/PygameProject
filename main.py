@@ -38,14 +38,17 @@ def print_txt(message, x, y, font_clr=(255, 255, 255), font_t=None, font_size=30
     txt = font_type.render(message, True, font_clr)
     screen.blit(txt, (x, y))
 
+
 class Closet:
     def __init__(self, pos_x, pos_y):
         self.x = pos_x
         self.y = pos_y
+        self.name_all_el = []
         self.elem = pygame.sprite.Group()
         for i in range(1, 5):
             Element(self.elem, 60 + (elem_size + 10) * (len(self.elem) // 2) + self.x,
-                10 + (elem_size + 15) * (len(self.elem) % 2) + self.y, str(i))
+                    10 + (elem_size + 15) * (len(self.elem) % 2) + self.y, str(i))
+            self.name_all_el.append(str(i))
         self.color = (130, 130, 130)
         self.color_fon_elem = (100, 100, 100)
         self.width = (len(self.elem) // 2 + len(self.elem) % 2) * (elem_size + 15) + 5
@@ -80,7 +83,9 @@ class Closet:
                 el.rect.y = 10 + (elem_size + 15) * (i % 2) + self.y
 
     def new_elem(self, element):
-        self.elem.add(element)
+        self.name_all_el.append(element.name)
+        Element(self.elem, 60 + (elem_size + 10) * (len(self.elem) // 2) + self.x,
+                10 + (elem_size + 15) * (len(self.elem) % 2) + self.y, element.name)
         self.width = (len(self.elem) // 2 + len(self.elem) % 2) * (elem_size + 15) + 5
 
 
@@ -157,10 +162,16 @@ def end_game():
         screen.fill((105, 105, 105))
         go_to_menu.draw(294, 375, 'Go to Menu', 50)
         quit_button.draw(355, 445, 'Exit', 50)
-        print_txt(f'Ты (а вдруг кто посмотрит). Вот твой результат:{len(closet.elem)})  <3 Спасибо *_*', 20, 100)
-        print_txt('Потом поправим Т_Т Щас 2:42  ну ок Уже похоже на что-то', 30, 120)
-        print_txt('Можно  я проект на школьный возьму ', 30, 140)
+        print_txt(f'Вот твой результат:{len(closet.elem)})  <3 Спасибо *_*', 20, 100)
         if go_to_menu.click():
+            for s in visible_sprites:
+                s.kill()
+            closet.name_all_el = []
+            closet.elem = pygame.sprite.Group()
+            for i in range(1, 5):
+                Element(closet.elem, 60 + (elem_size + 10) * (len(closet.elem) // 2) + closet.x,
+                        10 + (elem_size + 15) * (len(closet.elem) % 2) + closet.y, str(i))
+                closet.name_all_el.append(str(i))
             return
         if quit_button.click():
             pygame.quit()
@@ -179,7 +190,7 @@ class Element(pygame.sprite.Sprite):  ##  класс элемента
         self.rect.y = pos_y
         self.md = False
 
-    def mdn(self, xy):
+    def mdn(self, xy, cl):
         if self.md:
             a = pygame.sprite.spritecollideany(self, visible_sprites)
             x, y = xy
@@ -187,11 +198,18 @@ class Element(pygame.sprite.Sprite):  ##  класс элемента
                 for i in [a]:
                     if (i.name, self.name) in reactions and i != self:
                         inv_to_v(elements[reactions[(i.name, self.name)]], x, y)
+                        if elements[reactions[(i.name, self.name)]].name not in cl.name_all_el:
+                            cl.new_elem(elements[reactions[(i.name, self.name)]])
                         visible_sprites.remove(i, self)
         self.md = False
 
     def update(self, xy):
         self.md = self.rect.collidepoint(xy)
+
+    def get_elem(self, *args):
+        if args and args[0].type == pygame.MOUSEBUTTONDOWN and \
+                self.rect.collidepoint(args[0].pos):
+            inv_to_v(self, self.rect.x, self.rect.y - 200)
 
 
 def inv_to_v(elem, pos_x, pos_y):  ## создание видимого спрайта, по номеру и желаемому положению
@@ -223,6 +241,8 @@ while game_run:
                 quit()
             if event.type == pygame.MOUSEBUTTONDOWN:
                 visible_sprites.update(event.pos)
+                for el in closet.elem:
+                    el.get_elem(event)
             if event.type == pygame.MOUSEMOTION:  ## перемещение спрайта
                 for i in visible_sprites:
                     if i.md:
@@ -230,7 +250,7 @@ while game_run:
                         i.rect.topleft = (x - 25, y - 25)
             if event.type == pygame.MOUSEBUTTONUP:
                 for i in visible_sprites:
-                    i.mdn(event.pos)
+                    i.mdn(event.pos, closet)
         screen.fill((74, 74, 74))
         back_menu.draw(10, 10, 'Back', 49)
         end_button.draw(690, 10, 'End', 50)
