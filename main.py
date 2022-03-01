@@ -111,7 +111,7 @@ class Button:
 
 
 def menu():
-    intro_text = ["Правила игры: сами разбирайтесь, мне лень писать"]
+    intro_text = ["Правила игры: здесь могла быть ваша реклама"]
     start_button = Button(160, 50)
     quit_button = Button(160, 50)
     show_menu = True
