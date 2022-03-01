@@ -46,45 +46,39 @@ class Closet:
         self.name_all_el = []
         self.elem = pygame.sprite.Group()
         for i in range(1, 5):
-            Element(self.elem, 60 + (elem_size + 10) * (len(self.elem) // 2) + self.x,
+            Element(self.elem, 10 + (elem_size + 10) * (len(self.elem) // 2) + self.x,
                     10 + (elem_size + 15) * (len(self.elem) % 2) + self.y, str(i))
             self.name_all_el.append(str(i))
         self.color = (130, 130, 130)
         self.color_fon_elem = (100, 100, 100)
         self.width = (len(self.elem) // 2 + len(self.elem) % 2) * (elem_size + 15) + 5
         self.height = (elem_size + 15) * 2 + 5
-        self.rect = pygame.Rect(self.x, self.y, self.width + 100, self.height)
-        self.left_button = Button(50, self.height)
-        self.right_button = Button(50, self.height)
+        self.rect = pygame.Rect(self.x, self.y, self.width, self.height)
 
     def draw(self, canvas):
-        pygame.draw.rect(canvas, self.color, (self.x, self.y, self.width + 100, self.height))
+        pygame.draw.rect(canvas, self.color, (self.x, self.y, self.width, self.height))
         for i, el in enumerate(self.elem):
             pygame.draw.rect(canvas, self.color_fon_elem,
-                             (60 + (elem_size + 10) * (i // 2) + self.x, 10 + (elem_size + 10) * (i % 2) + self.y,
+                             (10 + (elem_size + 10) * (i // 2) + self.x, 10 + (elem_size + 10) * (i % 2) + self.y,
                               elem_size + 5, elem_size + 5))
         self.elem.draw(canvas)
-        self.left_button.draw(0, self.y, '***')
-        if self.width + 50 < 750:
-            self.right_button.draw(self.width + 50, self.y, '***')
-        else:
-            self.right_button.draw(750, self.y - 10, '***')
 
-    def scroll(self):
-        if self.right_button.click() and self.x > 800 - self.width:
+    def scroll(self, r):
+        if r == 1 and self.x > 800 - self.width:
             self.x -= 200 / fps
             for i, el in enumerate(self.elem):
-                el.rect.x = 60 + (elem_size + 10) * (i // 2) + self.x
+                el.rect.x = 10 + (elem_size + 10) * (i // 2) + self.x
                 el.rect.y = 10 + (elem_size + 15) * (i % 2) + self.y
-        if self.left_button.click() and self.x < 0:
+        if r == 2 and self.x < 0:
             self.x += 200 / fps
             for i, el in enumerate(self.elem):
-                el.rect.x = 60 + (elem_size + 10) * (i // 2) + self.x
+                el.rect.x = 10 + (elem_size + 10) * (i // 2) + self.x
                 el.rect.y = 10 + (elem_size + 15) * (i % 2) + self.y
+
 
     def new_elem(self, element):
         self.name_all_el.append(element.name)
-        Element(self.elem, 60 + (elem_size + 10) * (len(self.elem) // 2) + self.x,
+        Element(self.elem, 10 + (elem_size + 10) * (len(self.elem) // 2) + self.x,
                 10 + (elem_size + 15) * (len(self.elem) % 2) + self.y, element.name)
         self.width = (len(self.elem) // 2 + len(self.elem) % 2) * (elem_size + 15) + 5
 
@@ -117,16 +111,16 @@ class Button:
 
 
 def menu():
-    intro_text = ["Правила игры:"]
-    start_button = Button(185, 50)
-    quit_button = Button(185, 50)
+    intro_text = ["Правила игры: сами разбирайтесь, мне лень писать"]
+    start_button = Button(160, 50)
+    quit_button = Button(160, 50)
     show_menu = True
     fon = pygame.transform.scale(load_image('menu_bkgrd.jpg'), (width, height))
     screen.blit(fon, (0, 0))
-    font = pygame.font.Font(None, 30)
+    font = pygame.font.Font(None, 40)
     text_coord = 400
     for line in intro_text:
-        string_rendered = font.render(line, 1, pygame.Color('black'))
+        string_rendered = font.render(line, 1, pygame.Color('red'))
         intro_rect = string_rendered.get_rect()
         text_coord += 10
         intro_rect.top = text_coord
@@ -139,8 +133,8 @@ def menu():
             if event.type == pygame.QUIT:
                 pygame.quit()
                 quit()
-        start_button.draw(190, 200, 'Start', 50)
-        quit_button.draw(190, 260, 'Exit', 50)
+        start_button.draw(147, 150, 'Start', 50)
+        quit_button.draw(147, 210, 'Exit', 50)
         if start_button.click():
             return
         if quit_button.click():
@@ -169,7 +163,7 @@ def end_game():
             closet.name_all_el = []
             closet.elem = pygame.sprite.Group()
             for i in range(1, 5):
-                Element(closet.elem, 60 + (elem_size + 10) * (len(closet.elem) // 2) + closet.x,
+                Element(closet.elem, 10 + (elem_size + 10) * (len(closet.elem) // 2) + closet.x,
                         10 + (elem_size + 15) * (len(closet.elem) % 2) + closet.y, str(i))
                 closet.name_all_el.append(str(i))
             return
@@ -184,11 +178,12 @@ class Element(pygame.sprite.Sprite):  ##  класс элемента
     def __init__(self, group, pos_x, pos_y, name):
         super().__init__(group)
         self.name = str(name)
-        self.image = load_image(self.name + '.png')
+        self.image = pygame.transform.scale(load_image(self.name + '.png'), (64, 64))
         self.rect = self.image.get_rect()
         self.rect.x = pos_x
         self.rect.y = pos_y
         self.md = False
+        self.dx, self.dy = 0, 0  # дельта x, y для красивого перемещения
 
     def mdn(self, xy, cl):
         if self.md:
@@ -197,14 +192,21 @@ class Element(pygame.sprite.Sprite):  ##  класс элемента
             if a:
                 for i in [a]:
                     if (i.name, self.name) in reactions and i != self:
-                        inv_to_v(elements[reactions[(i.name, self.name)]], x, y)
+                        inv_to_v(elements[reactions[(i.name, self.name)]], x - self.dx, y - self.dy)
                         if elements[reactions[(i.name, self.name)]].name not in cl.name_all_el:
                             cl.new_elem(elements[reactions[(i.name, self.name)]])
                         visible_sprites.remove(i, self)
+                    elif i != self:
+                        self.rect.topleft = (self.rect.x - 64, self.rect.y - 64)
+                        if self.rect.x < 0:
+                            self.rect.x += 128
+                        if self.rect.y < 0:
+                            self.rect.y += 128
         self.md = False
 
     def update(self, xy):
         self.md = self.rect.collidepoint(xy)
+        self.dx, self.dy = xy[0] - self.rect.x, xy[1] - self.rect.y
 
     def get_elem(self, *args):
         if args and args[0].type == pygame.MOUSEBUTTONDOWN and \
@@ -234,11 +236,19 @@ while game_run:
     back_menu = Button(100, 50)
     running = True
     closet = Closet(0, 600)
+    r = 0
     while running:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
                 quit()
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_RIGHT:
+                    r = 1
+                if event.key == pygame.K_LEFT:
+                    r = 2
+            if event.type == pygame.KEYUP:
+                r = 0
             if event.type == pygame.MOUSEBUTTONDOWN:
                 visible_sprites.update(event.pos)
                 for el in closet.elem:
@@ -247,15 +257,17 @@ while game_run:
                 for i in visible_sprites:
                     if i.md:
                         x, y = event.pos
-                        i.rect.topleft = (x - 25, y - 25)
+                        i.rect.topleft = (x - i.dx, y - i.dy)
+                        if closet.rect.collidepoint(x - i.dx, y - i.dy):
+                            i.kill()
             if event.type == pygame.MOUSEBUTTONUP:
                 for i in visible_sprites:
                     i.mdn(event.pos, closet)
         screen.fill((74, 74, 74))
+        closet.scroll(r)
         back_menu.draw(10, 10, 'Back', 49)
         end_button.draw(690, 10, 'End', 50)
         closet.draw(screen)
-        closet.scroll()
         if back_menu.click():
             menu()
         if end_button.click():
